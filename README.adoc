@@ -1,0 +1,154 @@
+= args
+
+== Introduction
+
+This document specifies the args file format.
+This format is designed to provide a lightweight file format to save and manage
+arguments for application that can be started with additional arguments.
+
+The interface for complex applications<<1>>, that do more then one thing, can
+sometimes be hard to use and even harder to remember.
+It is possible to avoiding this problem by creating wrapper shell scripts (with
+just one line), searching in the shell history for old calls or using a shell
+snippets manager<<2>>.
+Some applications allow to use config files<<3>> that define in a file format
+the values that should be used by the applications.
+
+The args file format allows to store complex application calls in a defined file
+format that can be read by the application.
+
+args files are no executables and can also be used as config file.
+The idea is to use for the commandline and the config file the same interface.
+
+You can use the command line tool injarg<<4>> if your app does not support args
+files.
+
+== Notation and Conventions
+
+The extension of an args file should be *.args*.
+Basicly represents each line in a args file an argument with the following
+exceptions.
+
+* empty lines are ignored
+* lines that start with +*#*+(U+0023) are comments that will be ignored
+* lines that start with +**$ **+(U+0024 U+0020) are viewed as line with multiple
+values
+* lines that start with +*|*+(U+007C) will be concatenate with the last value of
+the prior line, the following options are available
+** +**| **+ (U+007C U+0020), no seperator will be placed between the
+concatenated lines
+** +**|= **+ (U+007C U+003D U+0020), +*=*+(U+003D) will be placed between the
+concatenated lines
+** +**|s **+ (U+007C U+0073 U+0020), a space character (U+0020) will be placed
+between the concatenated lines
+** +**|t **+ (U+007C U+0074 U+0020), a horizontal tabulator (U+0009) will be
+placed between the concatenated lines
+** +**|n **+ (U+007C U+006E u+0020), a new line (U+000A) will be placed between
+the concatenated lines
+
+== Example
+
+The following example shows how you can write the arguments for an application.
+
+.commandline
+----
+$ ffmpeg -nostdin -b 250k -strict experimental -deinterlace -vcodec h264 -acodec aac example.mp4
+----
+
+.ffmpeg.args
+----
+-nostdin
+
+-b
+250k
+
+-strict
+experimental
+
+-deinterlace
+
+-vcodec
+h264
+
+-acodec
+aac
+
+example.mp4
+----
+
+== Recommendations
+
+=== Filenames
+
+It is useful to use the following schema for the naming of an args file:
+
+----
+APPNAME[.VARIANT].args --> toolXYZ.flags.args or toolXYZ.args
+----
+
+This naming schema allows to create and store for applications more than one
+args file in the same directory and the automatic detection of the args files
+for an application.
+
+=== Integration
+
+If you want to allow the use of args files in your application is the minimum
+requirement to add the commandline argument *--args* that takes the path to an
+args file and should be insert all arguments from the args file at this
+position.
+
+.toolXYZ.flags.args
+----
+-no-output
+-force
+--mode
+|= abc
+
+--text
+lorem
+|s ipsum
+----
+
+.commandline
+----
+$ toolXYZ --args toolXYZ.flags.args example.txt
+----
+
+.resolved commandline
+----
+$ toolXYZ -no-output -force --mode=abc --text "lorem ipsum" example.txt
+----
+
+An advanced integration handles default arguments for an application if no
+*--args* argument is used.
+Default arguments are stored in the working directory and use the naming schema
+`APPNAME.auto.args`.
+The application should detect the file and insert all arguments automatically as
+the first arguments.
+The automatic loading of the default arguments can be disabled with the argument
+*--no-auto-args*.
+
+The most user-friendly integration checks, if no *--args* argument is used, for
+all args files in a working directory and allow the user to select the variant
+for this application that should be used.
+The detaction of args files should be disengageable with the commandline flag
+*--no-args*.
+This flag also disables the automatic loading of the default arguments.
+
+== Implementations
+
+A reference implementation in Lua is part of LuaZDF<<5>>.
+
+[role="impllist"]
+--
+include::Implementations.adoc[]
+--
+
+== References
+[bibliography]
+- [[[1]]] https://gcc.gnu.org/onlinedocs/gcc/Option-Summary.html
+- [[[2]]] https://github.com/ok-borg/borg
+- [[[3]]] http://olivinelabs.com/busted/#usage
+- [[[4]]] https://github.com/aiq/injarg
+- [[[5]]] https://luazdf.aiq.dk/fn/readargsfile.html
+

@@ -1,0 +1,284 @@
+#!/usr/bin/env lua
+
+--------------------------------------------------------------------------------
+--LuaZDF-begin --with append capexec countlen dirfiles dirhas dump invertby keys
+--+ readfile readlines rmdirtree startswith subdirs writefile
+--------------------------------------------------------------------------------
+local lfs = require( "lfs" )  --ZREQ-lfs
+--ZFUNC-readfile-v1
+local function readfile( filename ) --> str, err
+   local f, err = io.open( filename, "r" )
+   if err then return nil, err end
+   local str, err = f:read( "*a" )
+   if err then return nil, err end
+   local res, err = f:close()
+   if err then return nil, err end
+   return str
+end
+--ZFUNC-append-v1
+local function append( arr, v, ... ) --> arr
+   table.insert( arr, v )
+   if ... then
+      for i, o in ipairs{ ... } do
+         table.insert( arr, o )
+      end
+   end
+   return arr
+end
+--ZFUNC-capexec-v1
+local function capexec( cmd ) --> exit, signal, stdout, stderr
+ 
+   local outfile = os.tmpname()
+   local errfile = os.tmpname()
+   cmd = cmd..[[ >"]]..outfile..[[" 2>"]]..errfile..[["]]
+   local exit, signal = os.execute( cmd )
+   local outcnt = readfile( outfile )
+   local errcnt = readfile( errfile )
+   os.remove( outfile )
+   os.remove( errfile )
+   return exit, signal, outcnt, errcnt
+end
+--ZFUNC-countlen-v1
+local function countlen( tab ) --> len
+   local len = 0
+   for _ in pairs( tab ) do
+      len = len+1
+   end
+   return len
+end
+--ZFUNC-dirfiles-v1
+local function dirfiles( path ) --> iter
+   local function yielddir( path )
+      for entry in lfs.dir( path ) do
+         local entrypath = path.."/"..entry
+         local mode = lfs.attributes( entrypath, "mode" )
+         if mode == "file" then
+            coroutine.yield( entry )
+         end
+      end
+   end
+   return coroutine.wrap( function() yielddir( path ) end )
+end
+--ZFUNC-dirhas-v1
+local function dirhas( path, name, mode ) --> entrypath
+   local modeval = lfs.attributes( path, "mode" )
+   if modeval ~= "directory" then return nil end
+   for entry in lfs.dir( path ) do
+      if entry == name then
+         local entrypath = path.."/"..entry
+         if mode then
+            local modeval = lfs.attributes( entrypath, "mode" )
+            if modeval ~= mode then
+               return nil
+            end
+         end
+         return entrypath
+      end
+   end
+   return nil
+end
+--ZFUNC-dump-v1
+local function dump( tab, format )
+   format = format or {}
+   format.indent = format.indent or 3
+   format.level = format.level or 0
+   format.file = format.file or io.stdout
+   local indent = format.level * format.indent
+   
+   for k,v in pairs( tab ) do
+      format.file:write( string.rep( " ", indent )..k..":" )
+      
+      if type( v ) == "table" then
+         format.file:write( "\n" )
+         format.level = format.level + 1
+         dump( v, format )
+         format.level = format.level - 1
+      elseif type( v ) == 'boolean' then
+         format.file:write( " "..tostring( v ).."\n" )      
+      else
+         format.file:write( " "..v.."\n" )
+      end
+   end
+end
+--ZFUNC-invertby-v1
+local function invertby( tab, fv ) --> itab
+   local itab = {}
+   for k, v in pairs( tab ) do
+      local ik = v
+      if fv then ik = fv( v ) end
+      itab[ ik ] = itab[ ik ] or {}
+      table.insert( itab[ ik ], k )
+   end
+   return itab
+end
+--ZFUNC-keys-v1
+local function keys( tab ) --> arr
+   local arr = {}
+   for k, v in pairs( tab ) do
+      table.insert( arr, k )
+   end
+   return arr
+end
+--ZFUNC-readlines-v1
+local function readlines( filename ) --> strlst, err
+   --ZFUNC-lines-v1
+   local function lines( str )
+      if not str:find( "\n$" ) then str = str.."\n" end
+      return str:gmatch( "([^\n]*)\n" )
+   end
+   local f, err = io.open( filename, "r" )
+   if err then return nil, err end
+   local str, err = f:read( "*a" )
+   if err then return nil, err end
+   local strlst = {}
+   for line in lines( str ) do
+      table.insert( strlst, line )
+   end
+   local res, err = f:close()
+   if err then return nil, err end
+   return strlst
+end
+--ZFUNC-rmdirtree-v1
+local function rmdirtree( path ) --> res, err
+   --ZFUNC-isdodd-v1
+   local function isdodd( e )
+      if e == "." or e == ".." then
+         return true
+      end
+      return false
+   end
+   
+   for entry in lfs.dir( path ) do
+      if not isdodd( entry ) then
+         local entrypath = path.."/"..entry
+         local mode = lfs.attributes( entrypath, "mode" )
+         local res, err = true, nil
+         if mode == "directory" then
+            res, err = rmdirtree( entrypath )
+         else
+            res, err = os.remove( entrypath )
+         end
+         if err then return res, err end
+      end
+   end
+   return os.remove( path )
+end
+--ZFUNC-startswith-v1
+local function startswith( str, prefix ) --> res
+   return string.sub( str, 1, string.len( prefix ) ) == prefix
+end
+--ZFUNC-subdirs-v1
+local function subdirs( path ) --> iter
+   --ZFUNC-isdodd-v1
+   local function isdodd( e )
+      if e == "." or e == ".." then
+         return true
+      end
+      return false
+   end
+   local function yielddir( path )
+      for entry in lfs.dir( path ) do
+         local entrypath = path.."/"..entry
+         local mode = lfs.attributes( entrypath, "mode" )
+         if mode == "directory" and not isdodd( entry ) then
+            coroutine.yield( entry )
+         end
+      end
+   end
+   return coroutine.wrap( function() yielddir( path ) end )
+end
+--ZFUNC-writefile-v1
+local function writefile( filename, ... ) --> res, err
+   local f, err = io.open( filename, "w" )
+   if err then return nil, err end
+   f, err = f:write( ... )
+   if err then return nil, err end
+   return f:close()
+end
+--------------------------------------------------------------------------------
+--LuaZDF-end
+--------------------------------------------------------------------------------
+
+local lustache = require( "lustache" )
+
+local function logln( str, ... )
+   return io.stdout:write( str:format( ... ), "\n" )
+end
+local function errfln( str, ... )
+   return io.stderr:write( "Error: ", str:format( ... ), "\n" )
+end
+local function errexit( ... )
+   if ... then
+      errfln( ... )
+   end
+   os.exit( 1 )
+end
+
+local iocachetab = {}
+local function _f( path )
+   if iocachetab[ path ] then
+      return iocachetab[ path ]
+   end
+
+   local res, err = readfile( path )
+   if err then
+      errexit( err )
+   end
+
+   iocachetab[ path ] = res
+   return res
+end
+
+local svgcache = {}
+local function svgicon( path )
+   if svgcache[ path ] then
+      return svgcache[ path ]
+   end
+
+   local lines, err = readlines( path )
+   if err then
+      errexit( err )
+   end
+
+   table.remove( lines, 1 )
+   local res = table.concat( lines )
+   svgcache[ path ] = res
+   return res
+end
+
+local function cmdexec( cmdtab )
+   local cmdline = table.concat( cmdtab, " " )
+   logln( "Execute: %s", cmdline )
+   local exit, signal, stdout, stderr = capexec( cmdline )
+   if not exit then
+      errfln( "Problems  with: %q", cmdline )
+      errfln( stderr )
+      errexit()
+   end
+   return stdout
+end
+
+local function adoctohtml( adoc ) --> html
+   local cmd = { "asciidoc" }
+   append( cmd, "--backend", "html5" )
+   append( cmd, "--no-header-footer" )
+   append( cmd, "--out-file", "-" )
+   append( cmd, adoc )
+   return cmdexec( cmd )
+end
+
+--------------------------------------------------------------------------------
+local function docPage( pageData, title, adocFile, htmlFile )
+   pageData.TITLE = title
+   pageData.CONTENT = adoctohtml( adocFile )
+   local page = lustache:render( _f"page/page.htm", pageData )
+   local res, err = writefile( htmlFile, page )
+   if err then errexit( err ) end
+end
+
+local pageData = {
+   CSS = "page/arms.css"
+}
+
+docPage( pageData, "ARGS", "README.adoc", "index.html" )
+

@@ -1,0 +1,77 @@
+/*@import "https://fonts.googleapis.com/css?family=Open+Sans:300,300italic,400,400italic,600,600italic%7CNoto+Serif:400,400italic,700,700italic%7CDroid+Sans+Mono:400,700";*/
+/*
+   http://jgthms.com/web-design-in-4-minutes/
+*/
+/*HTML*************************************************************************/
+body {
+  background-color: #1f1d1e;
+  color: #eeeeee;
+  font-family: "Helvetica", "Arial", sans-serif;
+  line-height: 1.5;
+  margin: 0 auto;
+  max-width: 800px;
+  padding: 4em 1em;
+}
+h1,
+h2,
+h3 {
+  background-color: #ff0;
+  color: #000;
+  text-align: center;
+}
+code {
+  padding: 2px 4px;
+  vertical-align: text-bottom;
+}
+pre {
+  border-left: 2px solid #ff0;
+  padding: 1em;
+}
+a {
+  color: #ff0;
+  text-decoration: none;
+}
+a:hover {
+  text-decoration: underline;
+}
+ul .monospaced {
+   font-family: "Courier New", Courier, monospace;
+   border-top: 1px solid #ff0;
+   border-bottom: 1px solid #ff0;
+}
+.bibliography a:visited {
+  color: #fb3d76;
+}
+.quoteblock {
+  font-family: "Noto Serif", "DejaVu Serif", serif;
+  font-size: 1rem;
+  font-style: italic;
+  color: #bd8a5e;
+  margin: 1.5em;
+}
+#footer {
+  display: flex;
+  justify-content: center;
+  text-align: center;
+  font-size: 0.8em;
+  border-top: 2px solid #ff0;
+  padding: 20px;
+}
+#footer a {
+  margin: 0 10px;
+}
+.impllist .title {
+  font-weight: bold;
+}
+.impllist ul {
+  margin-top: 0;
+  margin-bottom: 0;
+}
+.impllist ul > li {
+  display: inline-block;
+  line-height: 0;
+  margin-right: 1em;
+}
+.impllist a:visited {
+  color: #fb3d76;
+}
